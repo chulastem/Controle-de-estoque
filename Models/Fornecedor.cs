@@ -16,7 +16,7 @@ public class Fornecedor
             Console.WriteLine("2. Alterar Fornecedor");
             Console.WriteLine("3. Exibir lista de Fornecedores");
             Console.WriteLine("4. Remover Fornecedor");
-            Console.WriteLine("5. Sair");
+            Console.WriteLine("5. Voltar");
 
             string opcao = Console.ReadLine();
 
@@ -38,7 +38,6 @@ public class Fornecedor
                     break;
 
                 case "5":
-                    Console.WriteLine("Saindo ...\n");
                     return;
 
                 default:

@@ -19,7 +19,7 @@ public class Produto
             Console.WriteLine("2. Alterar produto");
             Console.WriteLine("3. Exibir lista de produtos");
             Console.WriteLine("4. Remover produto");
-            Console.WriteLine("5. Sair");
+            Console.WriteLine("5. Voltar");
 
             string opcao = Console.ReadLine();
 
@@ -41,7 +41,6 @@ public class Produto
                     break;
 
                 case "5":
-                    Console.WriteLine("Saindo ...\n");
                     return;
 
                 default:
