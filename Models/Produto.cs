@@ -4,6 +4,7 @@ public class Produto
 {
     public string produto, dataValidade;
     public int quantidade = 0;
+    bool quantidadeValida = false;
     public float valorUnitario = 0;
     private BancoDeDados db;
     private SQLiteConnection connection;
@@ -53,16 +54,47 @@ public class Produto
     //adiciona item
     public void AdicionarProduto()
     {
-        Console.WriteLine("Produto:");
-        produto = Console.ReadLine();
+
 
         if (!ProdutoExisteNaTabela(produto))
         {
-            Console.WriteLine("Quantidade:");
-            quantidade = int.Parse(Console.ReadLine());
+            do
+            {
+                Console.WriteLine("Produto:");
+                produto = Console.ReadLine();
+
+                if (string.IsNullOrWhiteSpace(produto) || string.IsNullOrEmpty(produto))
+                {
+                    Console.WriteLine("Nome do produto não é válido. Insira um nome válido.");
+                }
+            } while (string.IsNullOrWhiteSpace(produto));
+
+            while (!quantidadeValida)
+            {
+                Console.WriteLine("Quantidade:");
+                string input = Console.ReadLine();
+
+                if (int.TryParse(input, out quantidade))
+                {
+                    if (quantidade >= 0)
+                    {
+                        quantidadeValida = true;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Quantidade deve ser maior que zero.");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Quantidade inválida. Insira um número inteiro válido.");
+                }
+            }
+
 
             Console.WriteLine("Valor Unitario:");
             valorUnitario = float.Parse(Console.ReadLine());
+            
 
             Console.WriteLine("Data de Validade:");
             dataValidade = Console.ReadLine();
