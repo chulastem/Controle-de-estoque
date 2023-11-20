@@ -1,13 +1,16 @@
+using System.ComponentModel;
 using System.Data.Common;
 using System.Data.SQLite;
+using System.Collections.Generic;
 public class Produto
 {
     public string produto, dataValidade;
     public int quantidade = 0;
-    bool quantidadeValida = false;
     public float valorUnitario = 0;
     private BancoDeDados db;
     private SQLiteConnection connection;
+    private Random random = new Random();
+    public int id;
 
     public void Produtos(SQLiteConnection dbConnection)
     {
@@ -54,27 +57,27 @@ public class Produto
     //adiciona item
     public void AdicionarProduto()
     {
+        id = gerarID();
+        Console.WriteLine(id);
+        do
+        {
+            Console.WriteLine("Produto:");
+            produto = Console.ReadLine();
 
+            if (string.IsNullOrWhiteSpace(produto))
+            {
+                Console.WriteLine("Nome do produto não é válido. Insira um nome válido.");
+            }
+        } while (string.IsNullOrWhiteSpace(produto));
 
         if (!ProdutoExisteNaTabela(produto))
         {
-            do
-            {
-                Console.WriteLine("Produto:");
-                produto = Console.ReadLine();
-
-                if (string.IsNullOrWhiteSpace(produto) || string.IsNullOrEmpty(produto))
-                {
-                    Console.WriteLine("Nome do produto não é válido. Insira um nome válido.");
-                }
-            } while (string.IsNullOrWhiteSpace(produto));
-
+            bool quantidadeValida = false;
             while (!quantidadeValida)
             {
                 Console.WriteLine("Quantidade:");
-                string input = Console.ReadLine();
 
-                if (int.TryParse(input, out quantidade))
+                if (int.TryParse(Console.ReadLine(), out quantidade))
                 {
                     if (quantidade >= 0)
                     {
@@ -91,19 +94,55 @@ public class Produto
                 }
             }
 
+            bool valorValido  = false;
+            while (!valorValido)
+            {
+                Console.WriteLine("Digite o Valor Unitário:");
 
-            Console.WriteLine("Valor Unitario:");
-            valorUnitario = float.Parse(Console.ReadLine());
-            
+                // Tenta converter a entrada para float
+                if (float.TryParse(Console.ReadLine(), out valorUnitario))
+                {
+                    if (valorUnitario >= 0)
+                    {
+                        valorValido = true;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Valor deve ser maior que zero.");
+                    }
+                }
+                else
+                {   
+                    Console.WriteLine("Por favor, digite um valor numérico válido.");
+                }
+            }
 
-            Console.WriteLine("Data de Validade:");
-            dataValidade = Console.ReadLine();
+            do
+            {
+                Console.WriteLine("Digite a Data de Validade (no formato dd/mm/yyyy):");
 
-            string sql = "INSERT INTO produto (produto, quantidade, valor_unitario, data ) VALUES (@produto, @quantidade, @valor_unitario, @data)";
+                // Recebe a entrada do usuário
+                dataValidade = Console.ReadLine();
+
+                // Verifica se a entrada tem o formato correto e contém apenas números
+                if (ValidarDataValidade(dataValidade))
+                {
+                    // Saímos do loop se a entrada for válida
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("Formato de data inválido. Por favor, tente novamente.");
+                }
+
+            } while (true);
+
+            string sql = "INSERT INTO produto (id, produto, quantidade, valor_unitario, data ) VALUES (@id, @produto, @quantidade, @valor_unitario, @data)";
 
 
             using (SQLiteCommand command = new SQLiteCommand(sql, connection))
             {
+                command.Parameters.AddWithValue("@id",id);
                 command.Parameters.AddWithValue("@produto", produto);
                 command.Parameters.AddWithValue("@quantidade", quantidade);
                 command.Parameters.AddWithValue("@valor_unitario", valorUnitario);
@@ -113,9 +152,10 @@ public class Produto
         }
         else
         {
-            Console.WriteLine("Nenhum registro encontrado com o nome '" + produto + "'. Nenhuma atualização realizada.");
+            Console.WriteLine("Ja existe um  registro com o nome '" + produto + "'. Digite outro produto.");
         }
     }
+    //Mostra todos os itens da tabela produto
     public void Exibir()
     {
 
@@ -139,15 +179,14 @@ public class Produto
             }
         }
     }
-    //remove produto
+    //remove produto da tabela
     public void RemoverProduto()
     {
         Console.WriteLine("Produto:");
         produto = Console.ReadLine();
 
-        if (ProdutoExisteNaTabela(produto))
+        if (ProdutoExisteNaTabela(produto))// verifica se tem produto na tabela para remover
         {
-            // Consulte o banco de dados para obter o ID do produto a ser removido
             string query = "SELECT id FROM produto WHERE produto = @produto";
             int idDoProdutoParaRemover;
 
@@ -157,51 +196,118 @@ public class Produto
                 idDoProdutoParaRemover = Convert.ToInt32(selectCommand.ExecuteScalar());
             }
 
-            // Agora você tem o ID do produto para remoção
             string deleteSql = "DELETE FROM produto WHERE produto = @produto";
 
             using (SQLiteCommand deleteCommand = new SQLiteCommand(deleteSql, connection))
             {
                 deleteCommand.Parameters.AddWithValue("@produto", produto);
                 deleteCommand.ExecuteNonQuery();
-
-                // Atualize os IDs dos registros subsequentes (se necessário)
-                AtualizarIds(idDoProdutoParaRemover);
+            
                 Console.WriteLine($"'{produto}' foi removido.");
             }
         }
-        else
+        else// se nao tiver produto voltara ao inicio e retornara a mensagem
         {
             Console.WriteLine("Nenhum registro encontrado com o nome '" + produto + "'. Nenhuma atualização realizada.");
         }
     }
+
     //altera item
     public void AlterarProduto()
     {
+        // iniciando variaveis
         string produtoAntigo, novoProduto, novaData;
         int novaQuantidade = 0;
         float novoValor = 0;
 
         Exibir();
 
-        Console.WriteLine("Produto:");
+        Console.WriteLine("Digite o produto que deseja alterar:");
         produtoAntigo = Console.ReadLine();
-
-        if (ProdutoExisteNaTabela(produtoAntigo))
+        
+        if (ProdutoExisteNaTabela(produtoAntigo))//verifica se tem produto na tabela produto
         {
-            Console.WriteLine("Novo nome:");
-            novoProduto = Console.ReadLine();
+            //loop para tratamento do produto
+            do
+            {
+                Console.WriteLine("Produto:");
+                novoProduto = Console.ReadLine();
 
-            Console.WriteLine("Nova quantidade:");
-            novaQuantidade = int.Parse(Console.ReadLine());
+                if (string.IsNullOrWhiteSpace(novoProduto))
+                {
+                    Console.WriteLine("Nome do produto não é válido. Insira um nome válido.");
+                }
+            } while (string.IsNullOrWhiteSpace(novoProduto));
 
-            Console.WriteLine("Novo Valor:");
-            novoValor = float.Parse(Console.ReadLine());
+            // loop para digitar quantidade valida
+            bool quantidadeValida = false;
+            while (!quantidadeValida)
+            {
+                Console.WriteLine("Quantidade:");
 
-            Console.WriteLine("Nova Data de Validade:");
-            novaData = Console.ReadLine();
+                if (int.TryParse(Console.ReadLine(), out novaQuantidade))
+                {
+                    if (novaQuantidade >= 0)
+                    {
+                        quantidadeValida = true;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Quantidade deve ser maior que zero.");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Quantidade inválida. Insira um número inteiro válido.");
+                }
+            }
 
-            string sql = "UPDATE produto SET produto = @novoProduto, quantidade = @novaQuantidade, valor_unitario = @novoValor, data = @novaData WHERE produto = @produtoAntigo";
+            //loop para digitar valor adequado
+            bool valorValido  = false;
+            while (!valorValido)
+            {
+                Console.WriteLine("Digite o Valor Unitário:");
+
+                // Tenta converter a entrada para float
+                if (float.TryParse(Console.ReadLine(), out novoValor))
+                {
+                    if (novoValor >= 0)
+                    {
+                        valorValido = true;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Valor deve ser maior que zero.");
+                    }
+                }
+                else
+                {   
+                    Console.WriteLine("Por favor, digite um valor numérico válido.");
+                }
+            }
+
+            // loop para usuario digitar a data adequada
+            do
+            {
+                Console.WriteLine("Digite a Data de Validade (no formato dd/mm/yyyy):");
+
+                // Recebe a entrada do usuário
+                novaData = Console.ReadLine();
+
+                // Verifica se a entrada tem o formato correto e contém apenas números
+                if (ValidarDataValidade(novaData))
+                {
+                    // Saímos do loop se a entrada for válida
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("Formato de data inválido. Por favor, tente novamente.");
+                }
+
+            } while (true);
+
+            string sql = "UPDATE produto SET produto = @novoProduto, quantidade = @novaQuantidade, valor_unitario = @novoValor, data = @novaData WHERE produto = @produtoAntigo"; 
 
             using (SQLiteCommand command = new SQLiteCommand(sql, connection))
             {
@@ -218,7 +324,6 @@ public class Produto
                     Console.WriteLine($"{novoProduto} foi atualizado");
                 }
             }
-
         }
         else
         {
@@ -238,14 +343,40 @@ public class Produto
             return rowCount > 0;
         }
     }
-    public void AtualizarIds(int idDoProdutoParaRemover)
+    //tratamento de entrada para data de validade
+    public bool ValidarDataValidade(string data)
     {
-        string updateSql = "UPDATE produto SET id = id - 1 WHERE id > @removedId";
-
-        using (SQLiteCommand updateCommand = new SQLiteCommand(updateSql, connection))
+        // Tenta converter a entrada para DateTime
+        if (System.Text.RegularExpressions.Regex.IsMatch(data, @"^\d{2}/\d{2}/\d{4}$"))
         {
-            updateCommand.Parameters.AddWithValue("@removedId", idDoProdutoParaRemover);
-            updateCommand.ExecuteNonQuery();
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    //gera id do produto de 4 algarismos e unico
+    public int gerarID()
+    {
+        int numero;
+        do
+        {
+            numero = random.Next(1001, 9998);
+        }while(IdExisteNaTabela(numero));
+        return numero;
+    }
+    //verifica se ja tem id na tabela produto
+    public bool IdExisteNaTabela(int id)
+    {
+        string query = "SELECT COUNT(*) FROM produto WHERE id = @id";
+
+        using (SQLiteCommand command = new SQLiteCommand(query, connection))
+        {
+            command.Parameters.AddWithValue("@id", id);
+            int rowCount = Convert.ToInt32(command.ExecuteScalar());
+
+            return rowCount > 0;
         }
     }
 }

@@ -1,9 +1,13 @@
 using System.Data.SQLite;
+using System.Reflection.Metadata;
 public class Fornecedor
 {
     public string fornecedor, cnpj, contato, endereco, data;
     public Data dt = new Data();
     private SQLiteConnection connection;
+    private Random random = new Random();
+    public Endereco ed = new Endereco();
+
 
     public void Fornecedores(SQLiteConnection dbConnection)
     {
@@ -49,45 +53,72 @@ public class Fornecedor
 
     public void AdicionarFornecedor()
     {
-        Console.WriteLine("Fornecedor:");
-        fornecedor = Console.ReadLine();
+        int idFornecedor = gerarIdFornecedor(); // id gerado automaticamente
+
+        do
+        {
+            Console.WriteLine("Fornecedor:");
+            fornecedor = Console.ReadLine();
+
+            if (string.IsNullOrWhiteSpace(fornecedor))
+            {
+                Console.WriteLine("Nome do produto não é válido. Insira um nome válido.");
+            }
+        } while (string.IsNullOrWhiteSpace(fornecedor));
 
         if (!FornecedorExisteNaTabela(fornecedor))
         {
+            do
+            {
+                Console.WriteLine("Digite o CNPJ ( 00.000.000/0001-00 ):");
+                cnpj = Console.ReadLine();
 
+                if (!ValidarCnpj(cnpj))
+                {
+                    Console.WriteLine("CNPJ inválido. Por favor, insira um CNPJ no formato correto.");
+                }
+            } while (!ValidarCnpj(cnpj));
 
-            Console.WriteLine("CNPJ:");
-            cnpj = Console.ReadLine();
+            do
+            {
+                Console.WriteLine("Digite o número de telefone ((99) 9 9999-9999):");
+                contato = Console.ReadLine();
 
-            Console.WriteLine("Contato:");
-            contato = Console.ReadLine();
+                if (!ValidarTelefone(contato))
+                {
+                    Console.WriteLine("Número de telefone inválido. Por favor, insira um número no formato correto.");
+                }
+            } while (!ValidarTelefone(contato));
 
-            Console.WriteLine("Endereço:");
-            endereco = Console.ReadLine();
+            ed.PreencherEndereco();
 
             data = dt.DataAtual();
 
-            string sql = "INSERT INTO fornecedor (fornecedor, cnpj, contato, endereco, data_registro ) VALUES (@fornecedor, @cnpj, @contato, @endereco, @data_registro)";
-
+            string sql = "INSERT INTO fornecedor (id, fornecedor, cnpj, contato, rua, num, bairro, cidade, estado, data_registro) VALUES (@id, @fornecedor, @cnpj, @contato, @rua, @num, @bairro, @cidade, @estado, @data_registro)";
 
             using (SQLiteCommand command = new SQLiteCommand(sql, connection))
             {
+                command.Parameters.AddWithValue("@id", idFornecedor);
                 command.Parameters.AddWithValue("@fornecedor", fornecedor);
                 command.Parameters.AddWithValue("@cnpj", cnpj);
                 command.Parameters.AddWithValue("@contato", contato);
-                command.Parameters.AddWithValue("@endereco", endereco);
+                command.Parameters.AddWithValue("@rua", ed.Rua);
+                command.Parameters.AddWithValue("@num", ed.Num);
+                command.Parameters.AddWithValue("@bairro", ed.Bairro);
+                command.Parameters.AddWithValue("@cidade", ed.Cidade);
+                command.Parameters.AddWithValue("@estado", ed.Estado);
                 command.Parameters.AddWithValue("@data_registro", data);
                 command.ExecuteNonQuery();
             }
         }
         else
         {
-            Console.WriteLine("Nenhum registro encontrado com o nome '" + fornecedor + "'. Nenhuma atualização realizada.");
+            Console.WriteLine("Você digitou um fornecedor existente.");
         }
     }
     public void ExibirFornecedor()
     {
-        string query = "SELECT id, fornecedor, cnpj, contato, endereco, data_registro FROM fornecedor";
+        string query = "SELECT id, fornecedor, cnpj, contato, rua, num, bairro, cidade, estado, data_registro FROM fornecedor";
 
         using (SQLiteCommand command = new SQLiteCommand(query, connection))
         {
@@ -100,10 +131,16 @@ public class Fornecedor
                     string fornecedor = reader["fornecedor"].ToString();
                     string cnpj = reader["cnpj"].ToString();
                     string contato = reader["contato"].ToString();
-                    string endereco = reader["endereco"].ToString();
+                    string rua = reader["rua"].ToString();
+                    string num = reader["num"].ToString();
+                    string bairro = reader["bairro"].ToString();
+                    string cidade = reader["cidade"].ToString();
+                    string estado = reader["estado"].ToString();
                     string data = reader["data_registro"].ToString();
 
-                    Console.WriteLine($"ID: {id}, Fornecedor: {fornecedor}, CNPJ: {cnpj}, Contato: {contato}, Endereço: {endereco}, Data de Registo: {data}");
+                    string nEndereco = $"{rua}, {num}, {bairro}, {cidade}, {estado}";
+
+                    Console.WriteLine($"ID: {id}, Fornecedor: {fornecedor}, CNPJ: {cnpj}, Contato: {contato}, Endereço: {nEndereco}, Data de Registo: {data}");
                 }
             }
         }
@@ -111,7 +148,7 @@ public class Fornecedor
     //remove produto
     public void RemoverFornecedor()
     {
-        Console.WriteLine("Fornecedor:");
+        Console.WriteLine("ID do Fornecedor:");
         fornecedor = Console.ReadLine();
 
         if (FornecedorExisteNaTabela(fornecedor))
@@ -134,8 +171,6 @@ public class Fornecedor
                 deleteCommand.Parameters.AddWithValue("@fornecedor", fornecedor);
                 deleteCommand.ExecuteNonQuery();
 
-                // Atualize os IDs dos registros subsequentes (se necessário)
-                AtualizarIds(idFornecedor);
                 Console.WriteLine($"'{fornecedor}' foi removido.");
             }
         }
@@ -156,28 +191,55 @@ public class Fornecedor
 
         if (FornecedorExisteNaTabela(fornecedorAntigo))
         {
-            Console.WriteLine("Novo Nome:");
-            novoFornecedor = Console.ReadLine();
+            do
+            {
+                Console.WriteLine("Novo Fornecedor:");
+                novoFornecedor = Console.ReadLine();
 
-            Console.WriteLine("Novo CNPJ:");
-            nCnpj = Console.ReadLine();
+                if (string.IsNullOrWhiteSpace(novoFornecedor))
+                {
+                    Console.WriteLine("Nome do produto não é válido. Insira um nome válido.");
+                }
+            } while (string.IsNullOrWhiteSpace(novoFornecedor));
 
-            Console.WriteLine("Novo Contato:");
-            nContato = Console.ReadLine();
+            do
+            {
+                Console.WriteLine("Digite o CNPJ ( 00.000.000/0001-00 ):");
+                nCnpj = Console.ReadLine();
 
-            Console.WriteLine("Novo Endereco:");
-            nEndereco = Console.ReadLine();
+                if (!ValidarCnpj(nCnpj))
+                {
+                    Console.WriteLine("CNPJ inválido. Por favor, insira um CNPJ no formato correto.");
+                }
+            } while (!ValidarCnpj(nCnpj));
+    
+            do
+            {
+                Console.WriteLine("Digite o número de telefone ((99) 9 9999-9999):");
+                nContato = Console.ReadLine();
+
+                if (!ValidarTelefone(nContato))
+                {
+                    Console.WriteLine("Número de telefone inválido. Por favor, insira um número no formato correto.");
+                }
+            } while (!ValidarTelefone(nContato));
+
+            ed.PreencherEndereco();
 
             dataAlteracao = dt.DataAtual();
 
-            string sql = "UPDATE fornecedor SET fornecedor = @novoFornecedor, cnpj = @nCnpj, contato = @nContato, endereco = @nEndereco, data_registro = @dataAlteracao WHERE fornecedor = @fornecedorAntigo";
+            string sql = "UPDATE fornecedor SET fornecedor = @novoFornecedor, cnpj = @nCnpj, contato = @nContato, rua = @rua, num = @num, bairro = @bairro, cidade = @cidade, estado = @estado, data_registro = @dataAlteracao WHERE fornecedor = @fornecedorAntigo";
 
             using (SQLiteCommand command = new SQLiteCommand(sql, connection))
             {
                 command.Parameters.AddWithValue("@novoFornecedor", novoFornecedor);
                 command.Parameters.AddWithValue("@nCnpj", nCnpj);
                 command.Parameters.AddWithValue("@nContato", nContato);
-                command.Parameters.AddWithValue("@nEndereco", nEndereco);
+                command.Parameters.AddWithValue("@rua", ed.Rua);
+                command.Parameters.AddWithValue("@num", ed.Num);
+                command.Parameters.AddWithValue("@bairro", ed.Bairro);
+                command.Parameters.AddWithValue("@cidade", ed.Cidade);
+                command.Parameters.AddWithValue("@estado", ed.Estado);
                 command.Parameters.AddWithValue("@dataAlteracao", dataAlteracao);
                 command.Parameters.AddWithValue("@fornecedorAntigo", fornecedorAntigo);
 
@@ -194,6 +256,7 @@ public class Fornecedor
             Console.WriteLine("Nenhum registro encontrado com o nome '" + fornecedorAntigo + "'. Nenhuma atualização realizada.");
         }
     }
+
     //verifica se tem o item na tabela
     public bool FornecedorExisteNaTabela(string fornecedor)
     {
@@ -207,15 +270,69 @@ public class Fornecedor
             return rowCount > 0;
         }
     }
-
-    public void AtualizarIds(int idFornecedor)
+    // tratamento para entrada cnpj
+    public bool ValidarCnpj(string cnpj)
     {
-        string updateSql = "UPDATE fornecedor SET id = id - 1 WHERE id > @removedId";
-
-        using (SQLiteCommand updateCommand = new SQLiteCommand(updateSql, connection))
+        // Verifica se o CNPJ tem o formato correto
+        string formatoEsperado = "##.###.###/####-##";
+        for (int i = 0; i < cnpj.Length; i++)
         {
-            updateCommand.Parameters.AddWithValue("@removedId", idFornecedor);
-            updateCommand.ExecuteNonQuery();
+            if (formatoEsperado[i] == '#' && !char.IsDigit(cnpj[i]))
+            {
+                // Caractere esperado é um número, mas encontrou um não número
+                return false;
+            }
+            else if (formatoEsperado[i] != '#' && formatoEsperado[i] != cnpj[i])
+            {
+                // Caractere esperado é um caractere especial, mas não coincide
+                return false;
+            }
+        }
+
+        return true;
+    }
+    // tratamento para entrada contato
+    public bool ValidarTelefone(string telefone)
+    {
+        // Verifica se o número de telefone tem o formato correto
+        string formatoEsperado = "(##) # ####-####";
+        for (int i = 0; i < telefone.Length; i++)
+        {
+            if (formatoEsperado[i] == '#' && !char.IsDigit(telefone[i]))
+            {
+                // Caractere esperado é um número, mas encontrou um não número
+                return false;
+            }
+            else if (formatoEsperado[i] != '#' && formatoEsperado[i] != telefone[i])
+            {
+                // Caractere esperado é um caractere especial, mas não coincide
+                return false;
+            }
+        }
+
+        return true;
+    }
+    // gera id de 3 algarismos
+    public int gerarIdFornecedor()
+    {
+        int numero;
+        do
+        {
+            numero = random.Next(100, 999);
+        }while(IdExisteNaTabela(numero));
+        return numero;
+    }
+    //verifica se ja tem id na tabela fornecedor
+    public bool IdExisteNaTabela(int id)
+    {
+        string query = "SELECT COUNT(*) FROM fornecedor WHERE id = @id";
+
+        using (SQLiteCommand command = new SQLiteCommand(query, connection))
+        {
+            command.Parameters.AddWithValue("@id", id);
+            int rowCount = Convert.ToInt32(command.ExecuteScalar());
+
+            return rowCount > 0;
         }
     }
 }
