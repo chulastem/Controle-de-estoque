@@ -18,7 +18,8 @@ class Program
 
         while (true)
         {
-            Console.WriteLine("Escolha uma opção:");
+            Console.WriteLine("-----| CONTROLE DE ESTOQUE |-----\n");
+            Console.WriteLine("Escolha uma opção:\n");
             Console.WriteLine("1. Produtos");
             Console.WriteLine("2. Realizar Venda");
             Console.WriteLine("3. Histórico de Vendas");
@@ -30,18 +31,23 @@ class Program
             switch (opcao)
             {
                 case "1":
+                    Console.Clear();
                     pd.Produtos(bd.GetConnection());
+                    
                     break;
 
                 case "2":
+                    Console.Clear();
                     vd.RealizarVenda(bd.GetConnection());
                     break;
 
                 case "3":
+                    Console.Clear();
                     vd.ExibirHistorico();
                     break;
 
                 case "4":
+                    Console.Clear();
                     fd.Fornecedores(bd.GetConnection());
                     break;
 

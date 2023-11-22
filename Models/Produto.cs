@@ -18,7 +18,8 @@ public class Produto
 
         while (true)
         {
-            Console.WriteLine("Escolha uma opção:");
+            Console.WriteLine("-----|      PRODUTO     |-----\n");
+            Console.WriteLine("Escolha uma opção:\n");
             Console.WriteLine("1. Adicionar produto");
             Console.WriteLine("2. Alterar produto");
             Console.WriteLine("3. Exibir lista de produtos");
@@ -30,21 +31,26 @@ public class Produto
             switch (opcao)
             {
                 case "1":
+                    Console.Clear();
                     AdicionarProduto();
                     break;
 
                 case "2":
+                    Console.Clear();
                     AlterarProduto();
                     break;
                 case "3":
+                    Console.Clear();
                     Exibir();
                     break;
 
                 case "4":
+                    Console.Clear();
                     RemoverProduto();
                     break;
 
                 case "5":
+                    Console.Clear();
                     return;
 
                 default:
@@ -58,7 +64,6 @@ public class Produto
     public void AdicionarProduto()
     {
         id = gerarID();
-        Console.WriteLine(id);
         do
         {
             Console.WriteLine("Produto:");

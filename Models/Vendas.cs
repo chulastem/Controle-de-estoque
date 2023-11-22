@@ -15,10 +15,14 @@ public class Vendas
     private SQLiteConnection connection;
     public Data dt = new Data();
     public bool carrinhoValido = false, pagamento = false;
+    public Produto pd = new Produto();
 
     public void RealizarVenda(SQLiteConnection dbConnection)
     {
         connection = dbConnection;
+
+        Exibir();
+        Console.WriteLine();
 
         ProdutoVendido();
 
@@ -344,5 +348,28 @@ public class Vendas
         Console.WriteLine();
         ExibirSaldo();
         Console.WriteLine();
+    }
+    public void Exibir()
+    {
+
+        string query = "SELECT id, produto, quantidade, valor_unitario, data FROM produto";
+
+        using (SQLiteCommand command = new SQLiteCommand(query, connection))
+        {
+            using (SQLiteDataReader reader = command.ExecuteReader())
+            {
+                Console.WriteLine("Itens no Estoque:");
+                while (reader.Read())
+                {
+                    int id = reader.GetInt32(reader.GetOrdinal("id"));
+                    string produto = reader["produto"].ToString();
+                    int quantidade = reader.GetInt32(reader.GetOrdinal("quantidade"));
+                    float valorUnitario = reader.GetFloat(reader.GetOrdinal("valor_unitario"));
+                    string dataValidade = reader["data"].ToString();
+
+                    Console.WriteLine($"ID: {id}, Produto: {produto}, Quantidade: {quantidade}, Valor Unitário: {valorUnitario}, Data de Validade: {dataValidade}");
+                }
+            }
+        }
     }
 }
