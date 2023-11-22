@@ -57,8 +57,7 @@ public class Produto
     //adiciona item
     public void AdicionarProduto()
     {
-        id = gerarID();
-        Console.WriteLine(id);
+
         do
         {
             Console.WriteLine("Produto:");
@@ -94,7 +93,7 @@ public class Produto
                 }
             }
 
-            bool valorValido  = false;
+            bool valorValido = false;
             while (!valorValido)
             {
                 Console.WriteLine("Digite o Valor Unitário:");
@@ -112,7 +111,7 @@ public class Produto
                     }
                 }
                 else
-                {   
+                {
                     Console.WriteLine("Por favor, digite um valor numérico válido.");
                 }
             }
@@ -137,12 +136,11 @@ public class Produto
 
             } while (true);
 
-            string sql = "INSERT INTO produto (id, produto, quantidade, valor_unitario, data ) VALUES (@id, @produto, @quantidade, @valor_unitario, @data)";
+            string sql = "INSERT INTO produto (produto, quantidade, valor_unitario, data ) VALUES (@produto, @quantidade, @valor_unitario, @data)";
 
 
             using (SQLiteCommand command = new SQLiteCommand(sql, connection))
             {
-                command.Parameters.AddWithValue("@id",id);
                 command.Parameters.AddWithValue("@produto", produto);
                 command.Parameters.AddWithValue("@quantidade", quantidade);
                 command.Parameters.AddWithValue("@valor_unitario", valorUnitario);
@@ -182,10 +180,25 @@ public class Produto
     //remove produto da tabela
     public void RemoverProduto()
     {
-        Console.WriteLine("Produto:");
+        Console.WriteLine("Digite o ID ou o nome do produto");
         produto = Console.ReadLine();
 
-        if (ProdutoExisteNaTabela(produto))// verifica se tem produto na tabela para remover
+        if (int.TryParse(produto, out int id))
+        {
+            // Se o usuário digitou um número, remover pelo ID
+            RemoverProdutoPorId(id);
+        }
+        else
+        {
+            // Se o usuário não digitou um número, tentar remover pelo nome do produto
+            RemoverProdutoPorNome(produto);
+        }
+
+    }
+
+    public void RemoverProdutoPorNome(string produto)
+    {
+        if (ProdutoExisteNaTabela(produto))
         {
             string query = "SELECT id FROM produto WHERE produto = @produto";
             int idDoProdutoParaRemover;
@@ -197,20 +210,52 @@ public class Produto
             }
 
             string deleteSql = "DELETE FROM produto WHERE produto = @produto";
+            string resetIdSql = "DELETE FROM sqlite_sequence WHERE name = 'produto'";
 
             using (SQLiteCommand deleteCommand = new SQLiteCommand(deleteSql, connection))
             {
                 deleteCommand.Parameters.AddWithValue("@produto", produto);
                 deleteCommand.ExecuteNonQuery();
-            
-                Console.WriteLine($"'{produto}' foi removido.");
+
+                Console.WriteLine($"Produto '{produto}' foi removido.");
+            }
+            using (SQLiteCommand resetIdCommand = new SQLiteCommand(resetIdSql, connection))
+            {
+                resetIdCommand.ExecuteNonQuery();
             }
         }
-        else// se nao tiver produto voltara ao inicio e retornara a mensagem
+        else
         {
-            Console.WriteLine("Nenhum registro encontrado com o nome '" + produto + "'. Nenhuma atualização realizada.");
+            Console.WriteLine($"Nenhum produto encontrado com o nome '{produto}'. Nenhuma atualização realizada.");
         }
     }
+
+    public void RemoverProdutoPorId(int id)
+{
+    string deleteSql = "DELETE FROM produto WHERE id = @id";
+    string resetIdSql = "DELETE FROM sqlite_sequence WHERE name = 'produto'";
+
+    using (SQLiteCommand deleteCommand = new SQLiteCommand(deleteSql, connection))
+    {
+        deleteCommand.Parameters.AddWithValue("@id", id);
+        int rowsAffected = deleteCommand.ExecuteNonQuery();
+
+        if (rowsAffected > 0)
+        {
+            Console.WriteLine($"Produto com ID {id} foi removido.");
+        }
+        else
+        {
+            Console.WriteLine($"Nenhum produto encontrado com o ID {id}. Nenhuma atualização realizada.");
+        }
+    }
+     using (SQLiteCommand resetIdCommand = new SQLiteCommand(resetIdSql, connection))
+            {
+                resetIdCommand.ExecuteNonQuery();
+            }
+}
+
+
 
     //altera item
     public void AlterarProduto()
@@ -224,7 +269,7 @@ public class Produto
 
         Console.WriteLine("Digite o produto que deseja alterar:");
         produtoAntigo = Console.ReadLine();
-        
+
         if (ProdutoExisteNaTabela(produtoAntigo))//verifica se tem produto na tabela produto
         {
             //loop para tratamento do produto
@@ -263,7 +308,7 @@ public class Produto
             }
 
             //loop para digitar valor adequado
-            bool valorValido  = false;
+            bool valorValido = false;
             while (!valorValido)
             {
                 Console.WriteLine("Digite o Valor Unitário:");
@@ -281,7 +326,7 @@ public class Produto
                     }
                 }
                 else
-                {   
+                {
                     Console.WriteLine("Por favor, digite um valor numérico válido.");
                 }
             }
@@ -307,7 +352,7 @@ public class Produto
 
             } while (true);
 
-            string sql = "UPDATE produto SET produto = @novoProduto, quantidade = @novaQuantidade, valor_unitario = @novoValor, data = @novaData WHERE produto = @produtoAntigo"; 
+            string sql = "UPDATE produto SET produto = @novoProduto, quantidade = @novaQuantidade, valor_unitario = @novoValor, data = @novaData WHERE produto = @produtoAntigo";
 
             using (SQLiteCommand command = new SQLiteCommand(sql, connection))
             {
@@ -356,27 +401,19 @@ public class Produto
             return false;
         }
     }
-    //gera id do produto de 4 algarismos e unico
-    public int gerarID()
-    {
-        int numero;
-        do
-        {
-            numero = random.Next(1001, 9998);
-        }while(IdExisteNaTabela(numero));
-        return numero;
-    }
+
+
     //verifica se ja tem id na tabela produto
-    public bool IdExisteNaTabela(int id)
-    {
-        string query = "SELECT COUNT(*) FROM produto WHERE id = @id";
+    // public bool IdExisteNaTabela(int id)
+    // {
+    //     string query = "SELECT COUNT(*) FROM produto WHERE id = @id";
 
-        using (SQLiteCommand command = new SQLiteCommand(query, connection))
-        {
-            command.Parameters.AddWithValue("@id", id);
-            int rowCount = Convert.ToInt32(command.ExecuteScalar());
+    //     using (SQLiteCommand command = new SQLiteCommand(query, connection))
+    //     {
+    //         command.Parameters.AddWithValue("@id", id);
+    //         int rowCount = Convert.ToInt32(command.ExecuteScalar());
 
-            return rowCount > 0;
-        }
-    }
+    //         return rowCount > 0;
+    //     }
+    // }
 }
