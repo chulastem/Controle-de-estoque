@@ -1,7 +1,7 @@
 using System.Data.SQLite;
+using System.Data;
 public class Vendas
 {
-    private BancoDeDados db;
     public List<float> carrinhoValor = new List<float>();
     public List<float> listaValor = new List<float>();
     public List<string> carrinhoProd = new List<string>();
@@ -10,10 +10,11 @@ public class Vendas
     public List<int> listaQtde = new List<int>();
     public float troco = 0, totalCompra = 0, valorPago = 0, saldo = 0;
     public int qtde = 0, id = 0, quantidade = 0, carrinho = 3, numeroVenda = 0;
-    public string produto, dataValidade, data;
+    public string produto, data;
     public float valorUnitario = 0;
     private SQLiteConnection connection;
     public Data dt = new Data();
+    public bool carrinhoValido = false, pagamento = false;
 
     public void RealizarVenda(SQLiteConnection dbConnection)
     {
@@ -40,7 +41,22 @@ public class Vendas
                 }
             }
         }
+        query = "SELECT numerovenda FROM caixa ORDER BY numerovenda DESC LIMIT 1;";
 
+        using (SQLiteCommand command = new SQLiteCommand(query, connection))
+        {
+            using (SQLiteDataReader reader = command.ExecuteReader())
+            {
+                if (reader.Read())
+                {
+                    numeroVenda = reader.GetInt32(reader.GetOrdinal("numerovenda"));
+                }
+                else
+                {
+                Console.WriteLine("Nenhum resultado encontrado na tabela 'caixa'.");
+                }
+            }
+        }
         do
         {
             Console.WriteLine("Digite o Produto vendido:");
@@ -48,27 +64,61 @@ public class Vendas
 
             if (listaProd.Contains(produto))
             {
-                Console.WriteLine("Unidades do produto: ");
-                quantidade = int.Parse(Console.ReadLine());
+                bool quantidadeValida = false;
+                while (!quantidadeValida)
+                {
+                    Console.WriteLine("Unidades do Produto:");
+
+                    if (int.TryParse(Console.ReadLine(), out quantidade))
+                    {
+                        if (quantidade >= 0)
+                        {
+                            quantidadeValida = true;
+                        }
+                        else
+                        {
+                            Console.WriteLine("Quantidade deve ser maior que zero.");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Quantidade inválida. Insira um número inteiro válido.");
+                    }
+                }
+
                 int indice = listaProd.IndexOf(produto);
 
                 if (quantidade <= listaQtde[indice])
                 {
                     CarrinhoCompras(produto, quantidade, listaValor[indice], listaProd);
-                    Console.WriteLine("Para finalizar compra digite 1\nPara cancelar a compra 2\nPara continuar 3");
-                    carrinho = int.Parse(Console.ReadLine());
+
+                    do
+                    {
+                        Console.WriteLine("Para finalizar compra digite 1\nPara cancelar a compra 2\nPara continuar 3");
+                        string inputCarrinho = Console.ReadLine();
+
+                        carrinhoValido = int.TryParse(inputCarrinho, out carrinho) && carrinho >= 1 && carrinho <= 3;
+                    
+                        if (!carrinhoValido)
+                        {
+                             Console.WriteLine("Digite uma opção valida: 1, 2 ou 3");
+                             Console.WriteLine(carrinho);
+                        }
+                    }while(!carrinhoValido);
 
                     if (carrinho == 1)
                     {
                         totalCompra = TotalPagar();
                         Console.WriteLine($"A compra ficou em {totalCompra}.\nDigite o valor Pago.\n");
+                        
                         do// do while para confimar se o valor pago e suficiente senao digitar novamente
                         {
                             valorPago = float.Parse(Console.ReadLine());
                             if (valorPago >= totalCompra)
                             {
+                                pagamento = true;
                                 troco = valorPago - totalCompra; // troco do cliente
-                                saldo += valorPago; // adiciona no caixa o valor da venda
+                                AlterarSaldo();
                                 Console.WriteLine($"O troco é {troco}\n");
                                 numeroVenda++;
                                 for (int i = 0; i < carrinhoProd.Count; i++)
@@ -84,33 +134,93 @@ public class Vendas
                             {
                                 Console.WriteLine($"Valor insuficiente.\nDigite novamente:\n");
                             }
-                        } while (false);
+                        } while (!pagamento);
                     }
                     else if (carrinho == 2)
                     {
                         break; // break para finalizar o codigo se a pessoa digitar 2
                     }
+                    else if( carrinho > 3 || carrinho < 1 ) 
+                    {
+                        Console.WriteLine("Digite uma opção valida");
+                        
+                    }
                 }
                 else
                 {
-                    Console.WriteLine($"Produto '{produto}' não existe.\n");
+                    Console.WriteLine($"Quantidade insuficiente no estoque.\n");
                 }
             }
             else
             {
-                Console.WriteLine($"Quantidade insuficiente no estoque.\n");
+                Console.WriteLine($"Produto '{produto}' não existe.\n");
             }
         } while (carrinho == 3);
     }
 
     //inicar e alterar saldo por hora inativo
-    public void IniciarAlterarSaldo()
+    public void AlterarSaldo()
     {
-        Console.WriteLine($"Digite o saldo do caixa");
-        saldo = float.Parse(Console.ReadLine());
-    }
+        string data = dt.DataAtual();
+        float valorDoBanco = 0;
 
-    //realiza o cadastro de cada protudo comprado e adiciona no carrinho
+        string query = "SELECT valor FROM saldo LIMIT 1;";
+
+        using (SQLiteCommand command = new SQLiteCommand(query, connection))
+        {
+            using (SQLiteDataReader reader = command.ExecuteReader())
+            {
+                if (reader.Read())
+                {
+                    valorDoBanco = Convert.ToSingle(reader["valor"]);
+                    Console.WriteLine(valorDoBanco);
+                }
+                else
+                {
+                    Console.WriteLine("Nenhum resultado encontrado.");
+                }
+            }
+        }
+        Console.WriteLine(valorDoBanco);
+        Console.WriteLine(totalCompra);
+        totalCompra += valorDoBanco;
+        string saldoAtual = "saldo_atual";
+        
+        string sql = "UPDATE saldo SET saldo = @saldo, valor = @valor, data = @data WHERE saldo = @saldoAntigo";
+
+        using (SQLiteCommand command = new SQLiteCommand(sql, connection))
+        {
+            command.Parameters.AddWithValue("@saldo", saldoAtual);
+            command.Parameters.AddWithValue("@valor", totalCompra);
+            command.Parameters.AddWithValue("@data", data);
+            command.Parameters.AddWithValue("@saldoAntigo", saldoAtual);
+
+            int rowsUpdated = command.ExecuteNonQuery();
+
+            if (rowsUpdated > 0)
+            {
+                Console.WriteLine("Saldo foi atualizado");
+            }
+        }
+    }
+    public void ExibirSaldo()
+    {
+        string query = "SELECT valor, data FROM saldo";
+
+        using (SQLiteCommand command = new SQLiteCommand(query, connection))
+        {
+            using (SQLiteDataReader reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    float caixa = reader.GetFloat(reader.GetOrdinal("valor"));
+                    string data = reader["data"].ToString();
+
+                    Console.WriteLine($"Caixa: {caixa}, Ultima alteração: {data}");
+                }
+            }
+        }    
+    }
     public void ProdutoVendido()
     {
 
@@ -122,6 +232,7 @@ public class Vendas
         listaValor.Clear();// zera dicionario
 
         troco = 0; // zera o troco
+        saldo =0;
     }
 
     //adicionar ao carrinho
@@ -216,7 +327,7 @@ public class Vendas
         {
             using (SQLiteDataReader reader = command.ExecuteReader())
             {
-                Console.WriteLine("Itens no Estoque:");
+                Console.WriteLine("Histórico de Venda:\n");
                 while (reader.Read())
                 {
                     int numeroVenda = reader.GetInt32(reader.GetOrdinal("numerovenda"));
@@ -226,9 +337,12 @@ public class Vendas
                     float total = reader.GetFloat(reader.GetOrdinal("total"));
                     string data = reader["data_venda"].ToString();
 
-                    Console.WriteLine($"ID: {numeroVenda}, Produto: {produto}, Quantidade: {quantidade}, Valor Unitário: {valorUnitario}, Total {total}, Data de Validade: {data}");
+                    Console.WriteLine($"Numero da venda: {numeroVenda}, Produto: {produto}, Vendidos: {quantidade}, Valor Unitário: {valorUnitario}, total:  {total}, Data da venda: {data}");
                 }
             }
         }
+        Console.WriteLine();
+        ExibirSaldo();
+        Console.WriteLine();
     }
 }
