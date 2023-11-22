@@ -15,7 +15,8 @@ public class Fornecedor
 
         while (true)
         {
-            Console.WriteLine("Escolha uma opção:");
+            Console.WriteLine("-----| FORNECEDOR |-----\n");
+            Console.WriteLine("Escolha uma opção:\n");
             Console.WriteLine("1. Adicionar Fornecedor");
             Console.WriteLine("2. Alterar Fornecedor");
             Console.WriteLine("3. Exibir lista de Fornecedores");
@@ -27,21 +28,26 @@ public class Fornecedor
             switch (opcao)
             {
                 case "1":
+                    Console.Clear();
                     AdicionarFornecedor();
                     break;
 
                 case "2":
+                    Console.Clear();
                     AlterarFornecedor();
                     break;
                 case "3":
+                    Console.Clear();
                     ExibirFornecedor();
                     break;
 
                 case "4":
+                    Console.Clear();
                     RemoverFornecedor();
                     break;
 
                 case "5":
+                    Console.Clear();
                     return;
 
                 default:

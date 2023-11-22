@@ -20,6 +20,12 @@ public class Vendas
     {
         connection = dbConnection;
 
+        Console.WriteLine("-----|    REALIZAR VENDA   |-----\n");
+
+        Exibir();
+
+        Console.WriteLine();
+
         ProdutoVendido();
 
         string query = "SELECT id, produto, quantidade, valor_unitario, data FROM produto";
@@ -327,7 +333,7 @@ public class Vendas
         {
             using (SQLiteDataReader reader = command.ExecuteReader())
             {
-                Console.WriteLine("Histórico de Venda:\n");
+                Console.WriteLine("-----|   HISTÓRICO DE VENDAS  |-----\n");
                 while (reader.Read())
                 {
                     int numeroVenda = reader.GetInt32(reader.GetOrdinal("numerovenda"));
@@ -344,5 +350,31 @@ public class Vendas
         Console.WriteLine();
         ExibirSaldo();
         Console.WriteLine();
+        Console.Write("Aperte Enter voltar");
+        Console.ReadLine();
+        Console.Clear();
+    }
+    public void Exibir()
+    {
+
+        string query = "SELECT id, produto, quantidade, valor_unitario, data FROM produto";
+
+        using (SQLiteCommand command = new SQLiteCommand(query, connection))
+        {
+            using (SQLiteDataReader reader = command.ExecuteReader())
+            {
+                Console.WriteLine("Itens no Estoque:");
+                while (reader.Read())
+                {
+                    int id = reader.GetInt32(reader.GetOrdinal("id"));
+                    string produto = reader["produto"].ToString();
+                    int quantidade = reader.GetInt32(reader.GetOrdinal("quantidade"));
+                    float valorUnitario = reader.GetFloat(reader.GetOrdinal("valor_unitario"));
+                    string dataValidade = reader["data"].ToString();
+
+                    Console.WriteLine($"ID: {id}, Produto: {produto}, Quantidade: {quantidade}, Valor Unitário: {valorUnitario}, Data de Validade: {dataValidade}");
+                }
+            }
+        }
     }
 }
