@@ -7,18 +7,20 @@ public class Produto
     public string produto, dataValidade;
     public int quantidade = 0;
     public float valorUnitario = 0;
-    private BancoDeDados db;
     private SQLiteConnection connection;
-    private Random random = new Random();
     public int id;
 
     public void Produtos(SQLiteConnection dbConnection)
     {
         connection = dbConnection;
 
+        Console.WriteLine("-----|   NOTIFICAÇÃO   |-----");
+
+        Notificacao();
+
         while (true)
         {
-            Console.WriteLine("-----|      PRODUTO     |-----\n");
+            Console.WriteLine("\n-----|      PRODUTO     |-----\n");
             Console.WriteLine("Escolha uma opção:\n");
             Console.WriteLine("1. Adicionar produto");
             Console.WriteLine("2. Alterar produto");
@@ -60,7 +62,6 @@ public class Produto
             }
         }
     }
-
     //adiciona item
     public void AdicionarProduto()
     {
@@ -187,7 +188,9 @@ public class Produto
     //remove produto da tabela
     public void RemoverProduto()
     {
-        Console.WriteLine("Digite o ID ou o nome do produto");
+        Exibir();
+
+        Console.WriteLine("\nDigite o ID ou o nome do produto");
         produto = Console.ReadLine();
 
         if (int.TryParse(produto, out int id))
@@ -238,32 +241,29 @@ public class Produto
     }
 
     public void RemoverProdutoPorId(int id)
-{
-    string deleteSql = "DELETE FROM produto WHERE id = @id";
-    string resetIdSql = "DELETE FROM sqlite_sequence WHERE name = 'produto'";
-
-    using (SQLiteCommand deleteCommand = new SQLiteCommand(deleteSql, connection))
     {
-        deleteCommand.Parameters.AddWithValue("@id", id);
-        int rowsAffected = deleteCommand.ExecuteNonQuery();
+        string deleteSql = "DELETE FROM produto WHERE id = @id";
+        string resetIdSql = "DELETE FROM sqlite_sequence WHERE name = 'produto'";
 
-        if (rowsAffected > 0)
+        using (SQLiteCommand deleteCommand = new SQLiteCommand(deleteSql, connection))
         {
-            Console.WriteLine($"Produto com ID {id} foi removido.");
+            deleteCommand.Parameters.AddWithValue("@id", id);
+            int rowsAffected = deleteCommand.ExecuteNonQuery();
+
+            if (rowsAffected > 0)
+            {
+                Console.WriteLine($"Produto com ID {id} foi removido.");
+            }
+            else
+            {
+                Console.WriteLine($"Nenhum produto encontrado com o ID {id}. Nenhuma atualização realizada.");
+            }
         }
-        else
+        using (SQLiteCommand resetIdCommand = new SQLiteCommand(resetIdSql, connection))
         {
-            Console.WriteLine($"Nenhum produto encontrado com o ID {id}. Nenhuma atualização realizada.");
+            resetIdCommand.ExecuteNonQuery();
         }
     }
-     using (SQLiteCommand resetIdCommand = new SQLiteCommand(resetIdSql, connection))
-            {
-                resetIdCommand.ExecuteNonQuery();
-            }
-}
-
-
-
     //altera item
     public void AlterarProduto()
     {
@@ -274,7 +274,7 @@ public class Produto
 
         Exibir();
 
-        Console.WriteLine("Digite o produto que deseja alterar:");
+        Console.WriteLine("\nDigite o produto que deseja alterar:");
         produtoAntigo = Console.ReadLine();
 
         if (ProdutoExisteNaTabela(produtoAntigo))//verifica se tem produto na tabela produto
@@ -406,6 +406,63 @@ public class Produto
         else
         {
             return false;
+        }
+    }
+    public void Notificacao()
+    {
+        string query = "SELECT produto, data FROM produto";
+
+        using (SQLiteCommand command = new SQLiteCommand(query, connection))
+        {
+            using (SQLiteDataReader reader = command.ExecuteReader())
+            {
+                Console.WriteLine("");
+                while (reader.Read())
+                {
+                    string produto = reader["produto"].ToString();
+                    string dataValidade = reader["data"].ToString();
+
+                    if (EstaVencido(dataValidade))
+                    {
+                        VerificarStatusVencimento(dataValidade, produto);
+                    }
+
+                }
+            }
+        }
+    }
+    public bool EstaVencido(string dataValidade)
+    {
+        DateTime vencimento;
+        if (DateTime.TryParse(dataValidade, out vencimento))
+        {
+            TimeSpan difference = vencimento - DateTime.Now;
+            return difference.TotalDays < 15; // Retorna verdadeiro se estiver vencido
+        }
+
+        return false; // Retorna falso se houver um problema ao converter a data
+    }
+    public void VerificarStatusVencimento(string dataValidade, string produto)
+    {
+        DateTime vencimento;
+
+        if (DateTime.TryParse(dataValidade, out vencimento))
+        {
+            TimeSpan difference = vencimento - DateTime.Now;
+
+            if (difference.TotalDays < 0)
+            {
+                Console.WriteLine($"{produto} está vencido.");
+            }
+            else if (difference.TotalDays < 15)
+            {
+                int diasArredondados = (int)Math.Ceiling(difference.TotalDays);
+                Console.WriteLine($"Faltam {diasArredondados} dias para o {produto} vencer.");
+            }
+        }
+        else
+        {
+            Console.WriteLine($"Erro ao processar a data de validade para o produto {produto}.");
         }
     }
 
