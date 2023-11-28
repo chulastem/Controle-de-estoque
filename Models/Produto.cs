@@ -274,7 +274,7 @@ public class Produto
 
         Exibir();
 
-        Console.WriteLine("\nDigite o produto que deseja alterar:");
+        Console.WriteLine("\nDigite o id ou nome do produto");
         produtoAntigo = Console.ReadLine();
 
         if (ProdutoExisteNaTabela(produtoAntigo))//verifica se tem produto na tabela produto
@@ -359,7 +359,16 @@ public class Produto
 
             } while (true);
 
-            string sql = "UPDATE produto SET produto = @novoProduto, quantidade = @novaQuantidade, valor_unitario = @novoValor, data = @novaData WHERE produto = @produtoAntigo";
+            string sql;
+
+            if (int.TryParse(produtoAntigo, out id))
+            {
+                sql = "UPDATE produto SET produto = @novoProduto, quantidade = @novaQuantidade, valor_unitario = @novoValor, data = @novaData WHERE id = @produtoAntigo";
+            }
+            else
+            {
+                sql = "UPDATE produto SET produto = @novoProduto, quantidade = @novaQuantidade, valor_unitario = @novoValor, data = @novaData WHERE produto = @produtoAntigo";
+            }
 
             using (SQLiteCommand command = new SQLiteCommand(sql, connection))
             {
@@ -385,14 +394,29 @@ public class Produto
     //verifica se tem o item na tabela
     public bool ProdutoExisteNaTabela(string produto)
     {
-        string query = "SELECT COUNT(*) FROM produto WHERE produto = @produto";
-
-        using (SQLiteCommand command = new SQLiteCommand(query, connection))
+        if (int.TryParse(produto, out int id))
         {
-            command.Parameters.AddWithValue("@produto", produto);
-            int rowCount = Convert.ToInt32(command.ExecuteScalar());
+            string query = "SELECT COUNT(*) FROM produto WHERE id = @id";
 
-            return rowCount > 0;
+            using (SQLiteCommand command = new SQLiteCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@id", id);
+                int rowCount = Convert.ToInt32(command.ExecuteScalar());
+
+                return rowCount > 0;
+            }
+        }
+        else
+        {
+            string query = "SELECT COUNT(*) FROM produto WHERE produto = @produto";
+
+            using (SQLiteCommand command = new SQLiteCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@produto", produto);
+                int rowCount = Convert.ToInt32(command.ExecuteScalar());
+
+                return rowCount > 0;
+            }
         }
     }
     //tratamento de entrada para data de validade

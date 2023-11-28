@@ -43,6 +43,7 @@ public class Fornecedor
 
                 case "4":
                     Console.Clear();
+                    ExibirFornecedor();
                     RemoverFornecedor();
                     break;
 
@@ -150,6 +151,7 @@ public class Fornecedor
                 }
             }
         }
+        Console.WriteLine();
     }
     //remove produto
     public void RemoverFornecedor()
