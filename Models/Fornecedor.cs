@@ -174,12 +174,11 @@ public class Fornecedor
             // Agora você tem o ID do produto para remoção
 
             string deleteSql;
-
+            string resetIdSql = "DELETE FROM sqlite_sequence WHERE name = 'fornecedor'";
 
             if (int.TryParse(fornecedor, out id))
             {
                 deleteSql = "DELETE FROM fornecedor WHERE id = @fornecedor";
-              
             }
             else
             {
@@ -192,6 +191,11 @@ public class Fornecedor
                 deleteCommand.ExecuteNonQuery();
 
                 Console.WriteLine($"'{fornecedor}' foi removido.\n");
+            }
+
+            using (SQLiteCommand resetIdCommand = new SQLiteCommand(resetIdSql, connection))
+            {
+                resetIdCommand.ExecuteNonQuery();
             }
              
         }
