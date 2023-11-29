@@ -3,6 +3,7 @@ using System.Reflection.Metadata;
 public class Fornecedor
 {
     public string fornecedor, cnpj, contato, endereco, data;
+    public int id;
     public Data dt = new Data();
     private SQLiteConnection connection;
     private Random random = new Random();
@@ -117,10 +118,11 @@ public class Fornecedor
                 command.Parameters.AddWithValue("@data_registro", data);
                 command.ExecuteNonQuery();
             }
+            Console.WriteLine($"{fornecedor} foi adicionado\n");
         }
         else
         {
-            Console.WriteLine("Você digitou um fornecedor existente.");
+            Console.WriteLine("Você digitou um fornecedor existente.\n");
         }
     }
     public void ExibirFornecedor()
@@ -156,7 +158,7 @@ public class Fornecedor
     //remove produto
     public void RemoverFornecedor()
     {
-        Console.WriteLine("ID do Fornecedor:");
+        Console.WriteLine("ID ou nome do Fornecedor:");
         fornecedor = Console.ReadLine();
 
         if (FornecedorExisteNaTabela(fornecedor))
@@ -172,19 +174,29 @@ public class Fornecedor
             }
 
             // Agora você tem o ID do produto para remoção
-            string deleteSql = "DELETE FROM fornecedor WHERE fornecedor = @fornecedor";
+
+            string deleteSql;
+
+            if (int.TryParse(fornecedor, out id))
+            {
+                deleteSql = "DELETE FROM fornecedor WHERE id = @fornecedor";
+            }
+            else
+            {
+                deleteSql = "DELETE FROM fornecedor WHERE fornecedor = @fornecedor";
+            }
 
             using (SQLiteCommand deleteCommand = new SQLiteCommand(deleteSql, connection))
             {
                 deleteCommand.Parameters.AddWithValue("@fornecedor", fornecedor);
                 deleteCommand.ExecuteNonQuery();
 
-                Console.WriteLine($"'{fornecedor}' foi removido.");
+                Console.WriteLine($"'{fornecedor}' foi removido.\n");
             }
         }
         else
         {
-            Console.WriteLine("Nenhum registro encontrado com o nome '" + fornecedor + "'. Nenhuma atualização realizada.");
+            Console.WriteLine("Nenhum registro encontrado com o nome '" + fornecedor + "'. Nenhuma atualização realizada.\n");
         }
     }
     //altera item
@@ -194,7 +206,7 @@ public class Fornecedor
 
         ExibirFornecedor();
 
-        Console.WriteLine("Fornecedor:");
+        Console.WriteLine("Digite id ou nome do Fornecedor:");
         fornecedorAntigo = Console.ReadLine();
 
         if (FornecedorExisteNaTabela(fornecedorAntigo))
@@ -236,7 +248,16 @@ public class Fornecedor
 
             dataAlteracao = dt.DataAtual();
 
-            string sql = "UPDATE fornecedor SET fornecedor = @novoFornecedor, cnpj = @nCnpj, contato = @nContato, rua = @rua, num = @num, bairro = @bairro, cidade = @cidade, estado = @estado, data_registro = @dataAlteracao WHERE fornecedor = @fornecedorAntigo";
+            string sql;
+
+            if (int.TryParse(fornecedorAntigo, out id))
+            {
+                sql = "UPDATE fornecedor SET fornecedor = @novoFornecedor, cnpj = @nCnpj, contato = @nContato, rua = @rua, num = @num, bairro = @bairro, cidade = @cidade, estado = @estado, data_registro = @dataAlteracao WHERE id = @fornecedorAntigo";
+            }
+            else
+            {
+                sql = "UPDATE fornecedor SET fornecedor = @novoFornecedor, cnpj = @nCnpj, contato = @nContato, rua = @rua, num = @num, bairro = @bairro, cidade = @cidade, estado = @estado, data_registro = @dataAlteracao WHERE fornecedor = @fornecedorAntigo";
+            }
 
             using (SQLiteCommand command = new SQLiteCommand(sql, connection))
             {
@@ -255,29 +276,45 @@ public class Fornecedor
 
                 if (rowsUpdated > 0)
                 {
-                    Console.WriteLine($"{novoFornecedor} foi atualizado");
+                    Console.WriteLine($"{novoFornecedor} foi atualizado\n");
                 }
             }
         }
         else
         {
-            Console.WriteLine("Nenhum registro encontrado com o nome '" + fornecedorAntigo + "'. Nenhuma atualização realizada.");
+            Console.WriteLine("Nenhum registro encontrado com o nome '" + fornecedorAntigo + "'. Nenhuma atualização realizada.\n");
         }
     }
 
     //verifica se tem o item na tabela
     public bool FornecedorExisteNaTabela(string fornecedor)
     {
-        string query = "SELECT COUNT(*) FROM fornecedor WHERE fornecedor = @fornecedor";
-
-        using (SQLiteCommand command = new SQLiteCommand(query, connection))
+        if (int.TryParse(fornecedor, out int id))
         {
-            command.Parameters.AddWithValue("@fornecedor", fornecedor);
-            int rowCount = Convert.ToInt32(command.ExecuteScalar());
+            string query = "SELECT COUNT(*) FROM fornecedor WHERE id = @id";
 
-            return rowCount > 0;
+            using (SQLiteCommand command = new SQLiteCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@id", id);
+                int rowCount = Convert.ToInt32(command.ExecuteScalar());
+
+                return rowCount > 0;
+            }
+        }
+        else
+        {
+            string query = "SELECT COUNT(*) FROM fornecedor WHERE fornecedor = @fornecedor";
+
+            using (SQLiteCommand command = new SQLiteCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@fornecedor", fornecedor);
+                int rowCount = Convert.ToInt32(command.ExecuteScalar());
+
+                return rowCount > 0;
+            }
         }
     }
+
     // tratamento para entrada cnpj
     public bool ValidarCnpj(string cnpj)
     {
