@@ -60,7 +60,6 @@ public class Fornecedor
 
     public void AdicionarFornecedor()
     {
-        int idFornecedor = gerarIdFornecedor(); // id gerado automaticamente
 
         do
         {
@@ -101,11 +100,10 @@ public class Fornecedor
 
             data = dt.DataAtual();
 
-            string sql = "INSERT INTO fornecedor (id, fornecedor, cnpj, contato, rua, num, bairro, cidade, estado, data_registro) VALUES (@id, @fornecedor, @cnpj, @contato, @rua, @num, @bairro, @cidade, @estado, @data_registro)";
+            string sql = "INSERT INTO fornecedor (fornecedor, cnpj, contato, rua, num, bairro, cidade, estado, data_registro) VALUES (@fornecedor, @cnpj, @contato, @rua, @num, @bairro, @cidade, @estado, @data_registro)";
 
             using (SQLiteCommand command = new SQLiteCommand(sql, connection))
             {
-                command.Parameters.AddWithValue("@id", idFornecedor);
                 command.Parameters.AddWithValue("@fornecedor", fornecedor);
                 command.Parameters.AddWithValue("@cnpj", cnpj);
                 command.Parameters.AddWithValue("@contato", contato);
@@ -173,6 +171,7 @@ public class Fornecedor
 
             // Agora você tem o ID do produto para remoção
             string deleteSql = "DELETE FROM fornecedor WHERE fornecedor = @fornecedor";
+            string resetIdSql = "DELETE FROM sqlite_sequence WHERE name = 'fornecedor'";
 
             using (SQLiteCommand deleteCommand = new SQLiteCommand(deleteSql, connection))
             {
@@ -180,6 +179,10 @@ public class Fornecedor
                 deleteCommand.ExecuteNonQuery();
 
                 Console.WriteLine($"'{fornecedor}' foi removido.");
+            }
+             using (SQLiteCommand resetIdCommand = new SQLiteCommand(resetIdSql, connection))
+            {
+                resetIdCommand.ExecuteNonQuery();
             }
         }
         else
@@ -321,26 +324,5 @@ public class Fornecedor
         return true;
     }
     // gera id de 3 algarismos
-    public int gerarIdFornecedor()
-    {
-        int numero;
-        do
-        {
-            numero = random.Next(100, 999);
-        }while(IdExisteNaTabela(numero));
-        return numero;
-    }
-    //verifica se ja tem id na tabela fornecedor
-    public bool IdExisteNaTabela(int id)
-    {
-        string query = "SELECT COUNT(*) FROM fornecedor WHERE id = @id";
-
-        using (SQLiteCommand command = new SQLiteCommand(query, connection))
-        {
-            command.Parameters.AddWithValue("@id", id);
-            int rowCount = Convert.ToInt32(command.ExecuteScalar());
-
-            return rowCount > 0;
-        }
-    }
+   
 }
